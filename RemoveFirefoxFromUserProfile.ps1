@@ -1,81 +1,82 @@
 <#
-.SYNONOPSIS
-    Скрипт для удаления Mozilla Firefox из профилей пользователей
+.SYNOPSIS
+    Script for removing Mozilla Firefox from user profiles
 
 .DESCRIPTION
-    Этот скрипт удаляет данные Mozilla Firefox (файлы, папки, реестр, ярлыки) 
-    для текущего или всех пользователей в системе. Поддерживает гибкую настройку 
-    через параметры командной строки.
+    This script removes Mozilla Firefox data (files, folders, registry, shortcuts)
+    for current or all users in the system. Supports flexible configuration
+    via command line parameters.
 
 .PARAMETER CleanRegistry
-    Выполнять очистку реестра (по умолчанию: $true)
+    Perform registry cleanup (default: $true)
 
 .PARAMETER VerboseOutput
-    Выводить подробные сообщения (по умолчанию: $true)
+    Display detailed messages (default: $true)
 
 .PARAMETER RemoveFirefoxProfiles
-    Удалять профили Firefox с диска (по умолчанию: $false)
+    Remove Firefox profiles from disk (default: $false)
 
 .PARAMETER RemoveCache
-    Удалять кэш Firefox (по умолчанию: $true)
+    Remove Firefox cache (default: $true)
 
 .PARAMETER RemoveShortcuts
-    Удалять ярлыки Firefox (по умолчанию: $true)
+    Remove Firefox shortcuts (default: $true)
 
 .PARAMETER UserScope
-    Обрабатывать всех пользователей или только текущего (по умолчанию: Current)
+    Process all users or only current user (default: Current)
 
 .PARAMETER Help
-    Показать справку по использованию скрипта
+    Show usage help
 
 .EXAMPLE
-    # Удалить Firefox только для текущего пользователя (безопасный режим)
+    # Remove Firefox for current user only (safe mode)
     .\RemoveFirefoxFromUserProfile.ps1
 
 .EXAMPLE
-    # Удалить Firefox для всех пользователей
+    # Remove Firefox for all users
     .\RemoveFirefoxFromUserProfile.ps1 -UserScope "All"
 
 .EXAMPLE
-    # Полная очистка Firefox для всех пользователей
+    # Complete Firefox removal for all users
     .\RemoveFirefoxFromUserProfile.ps1 -UserScope "All" -RemoveFirefoxProfiles $true
 
 .EXAMPLE
-    # Удалить только кэш и ярлыки для текущего пользователя
+    # Remove only cache and shortcuts for current user
     .\RemoveFirefoxFromUserProfile.ps1 -RemoveFirefoxProfiles $false -RemoveCache $true -RemoveShortcuts $true
 
 .EXAMPLE
-    # Тихий режим для всех пользователей
+    # Silent mode for all users
     .\RemoveFirefoxFromUserProfile.ps1 -UserScope "All" -VerboseOutput $false
 
 .EXAMPLE
-    # Показать справку
+    # Show help
     .\RemoveFirefoxFromUserProfile.ps1 -Help
 
 .NOTES
-    Автор: AMV
-    Требует: PowerShell 3.0+, права администратора для режима "All"
-    Версия: 2.3
-    Имя файла: RemoveFirefoxFromUserProfile.ps1
+    Author: AMV
+    Requires: PowerShell 3.0+, administrator rights for "All" mode
+    Version: 2.4
+    Filename: RemoveFirefoxFromUserProfile.ps1
+    Created: 2024
 #>
 
 param(
-    [Parameter(Mandatory=$false, HelpMessage="Выполнять очистку реестра")]
+    [Parameter(Mandatory=$false, HelpMessage="Perform registry cleanup")]
     [bool]$CleanRegistry = $true,
     
-    [Parameter(Mandatory=$false, HelpMessage="Выводить подробные сообщения")]
+    [Parameter(Mandatory=$false, HelpMessage="Display detailed messages")]
     [bool]$VerboseOutput = $true,
     
-    [Parameter(Mandatory=$false, HelpMessage="Удалять профили Firefox с диска")]
+    [Parameter(Mandatory=$false, HelpMessage="Remove Firefox profiles from disk")]
     [bool]$RemoveFirefoxProfiles = $false,
     
-    [Parameter(Mandatory=$false, HelpMessage="Удалять кэш Firefox")]
+    [Parameter(Mandatory=$false, HelpMessage="Remove Firefox cache")]
     [bool]$RemoveCache = $true,
     
-    [Parameter(Mandatory=$false, HelpMessage="Удалять ярлыки Firefox")]
+    [Parameter(Mandatory=$false, HelpMessage="Remove Firefox shortcuts")]
     [bool]$RemoveShortcuts = $true,
     
-    [Parameter(Mandatory=$false, HelpMessage="Обрабатывать всех пользователей или только текущего")]
+    [Parameter(Mandatory=$false, HelpMessage="Process all users or only current user")]
     [ValidateSet("All", "Current")]
     [string]$UserScope = "Current",
     
@@ -83,48 +84,53 @@ param(
     [switch]$Help
 )
 
-# Функция для отображения справки
+# Set console output encoding to UTF-8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
+# Function to display help
 function Show-Usage {
     Write-Output ""
     Write-Output "=== RemoveFirefoxFromUserProfile.ps1 ==="
-    Write-Output "Скрипт удаления Mozilla Firefox из профилей пользователей"
+    Write-Output "Script for removing Mozilla Firefox from user profiles"
+    Write-Output "Author: AMV"
     Write-Output ""
-    Write-Output "ОСНОВНЫЕ СЦЕНАРИИ ИСПОЛЬЗОВАНИЯ:"
+    Write-Output "BASIC USAGE SCENARIOS:"
     Write-Output ""
-    Write-Output "1.  Базовое использование (текущий пользователь):"
+    Write-Output "1.  Basic usage (current user only):"
     Write-Output "    .\RemoveFirefoxFromUserProfile.ps1"
     Write-Output ""
-    Write-Output "2.  Для всех пользователей (требует админ права):"
+    Write-Output "2.  For all users (requires admin rights):"
     Write-Output "    .\RemoveFirefoxFromUserProfile.ps1 -UserScope All"
     Write-Output ""
-    Write-Output "3.  Полное удаление Firefox для всех пользователей:"
+    Write-Output "3.  Complete Firefox removal for all users:"
     Write-Output "    .\RemoveFirefoxFromUserProfile.ps1 -UserScope All -RemoveFirefoxProfiles `$true"
     Write-Output ""
-    Write-Output "4.  Только кэш и ярлыки:"
+    Write-Output "4.  Cache and shortcuts only:"
     Write-Output "    .\RemoveFirefoxFromUserProfile.ps1 -RemoveFirefoxProfiles `$false -RemoveCache `$true -RemoveShortcuts `$true"
     Write-Output ""
-    Write-Output "5.  Тихий режим (без вывода):"
+    Write-Output "5.  Silent mode (no output):"
     Write-Output "    .\RemoveFirefoxFromUserProfile.ps1 -UserScope All -VerboseOutput `$false"
     Write-Output ""
-    Write-Output "6.  Показать справку:"
+    Write-Output "6.  Show help:"
     Write-Output "    .\RemoveFirefoxFromUserProfile.ps1 -Help"
     Write-Output ""
-    Write-Output "ПАРАМЕТРЫ:"
-    Write-Output "  -UserScope: All | Current (кто обрабатывается)"
-    Write-Output "  -RemoveFirefoxProfiles: `$true | `$false (удалять ли профили)"
-    Write-Output "  -RemoveCache: `$true | `$false (удалять ли кэш)"
-    Write-Output "  -RemoveShortcuts: `$true | `$false (удалять ли ярлыки)"
-    Write-Output "  -CleanRegistry: `$true | `$false (чистить ли реестр)"
-    Write-Output "  -Help : Показать эту справку"
+    Write-Output "PARAMETERS:"
+    Write-Output "  -UserScope: All | Current (who to process)"
+    Write-Output "  -RemoveFirefoxProfiles: `$true | `$false (remove profiles)"
+    Write-Output "  -RemoveCache: `$true | `$false (remove cache)"
+    Write-Output "  -RemoveShortcuts: `$true | `$false (remove shortcuts)"
+    Write-Output "  -CleanRegistry: `$true | `$false (clean registry)"
+    Write-Output "  -Help : Show this help"
     Write-Output ""
-    Write-Output "ПРИМЕРЫ КОМАНД:"
+    Write-Output "COMMAND EXAMPLES:"
     Write-Output "  .\RemoveFirefoxFromUserProfile.ps1 -UserScope All"
     Write-Output "  .\RemoveFirefoxFromUserProfile.ps1 -UserScope Current -RemoveFirefoxProfiles `$true"
     Write-Output "  .\RemoveFirefoxFromUserProfile.ps1 -Help"
     Write-Output ""
 }
 
-# Показываем справку если запрошена помощь
+# Show help if requested
 if ($Help -or $args -contains "-?" -or $args -contains "/?" -or $args -contains "--Help") {
     Show-Usage
     exit 0
@@ -133,13 +139,13 @@ if ($Help -or $args -contains "-?" -or $args -contains "/?" -or $args -contains 
 function Get-AllUserProfiles {
     <#
     .SYNOPSIS
-        Получает все пользовательские профили из реестра
+        Get all user profiles from registry
     #>
     
     $profiles = @()
     
     try {
-        # Способ 1: Через реестр (HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList)
+        # Method 1: Via registry (HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList)
         $profileListPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"
         if (Test-Path $profileListPath) {
             $profileSIDs = Get-ChildItem $profileListPath | Where-Object { 
@@ -159,13 +165,13 @@ function Get-AllUserProfiles {
                         }
                     }
                 } catch {
-                    # Пропускаем проблемные профили
+                    # Skip problematic profiles
                     continue
                 }
             }
         }
         
-        # Способ 2: Через WMI (резервный способ)
+        # Method 2: Via WMI (fallback method)
         if ($profiles.Count -eq 0) {
             $wmiProfiles = Get-WmiObject -Class Win32_UserProfile | Where-Object { 
                 $_.Special -eq $false -and 
@@ -185,7 +191,7 @@ function Get-AllUserProfiles {
         
         return $profiles
     } catch {
-        Write-Warning "Ошибка при получении списка профилей: $($_.Exception.Message)"
+        Write-Warning "Error getting profiles list: $($_.Exception.Message)"
         return @()
     }
 }
@@ -197,14 +203,14 @@ function Remove-Firefox-For-CurrentUser {
     $UserProfilePath = $env:USERPROFILE
     
     if ($Verbose) {
-        Write-Output "=== Обработка текущего пользователя: $UserName ==="
-        Write-Output "Путь к профилю: $UserProfilePath"
+        Write-Output "=== Processing current user: $UserName ==="
+        Write-Output "Profile path: $UserProfilePath"
     }
     
-    # Базовые пути для удаления на основе переменных окружения
+    # Basic paths for removal
     $TargetPaths = @()
     
-    # Добавляем пути для профилей Firefox если включено
+    # Add paths for Firefox profiles if enabled
     if ($RemoveProfiles) {
         $TargetPaths += @(
             @{Path = "$env:APPDATA\Mozilla"; Type = "Folder"},
@@ -212,14 +218,14 @@ function Remove-Firefox-For-CurrentUser {
             @{Path = "$env:USERPROFILE\AppData\LocalLow\Mozilla"; Type = "Folder"}
         )
     } else {
-        # Если не удаляем профили, удаляем только конкретные папки Firefox
+        # If not removing profiles, remove only specific Firefox folders
         $TargetPaths += @(
             @{Path = "$env:APPDATA\Mozilla\Firefox"; Type = "Folder"},
             @{Path = "$env:LOCALAPPDATA\Mozilla\Firefox"; Type = "Folder"}
         )
     }
     
-    # Добавляем кэш если включено
+    # Add cache if enabled
     if ($RemoveCache) {
         $TargetPaths += @(
             @{Path = "$env:LOCALAPPDATA\Temp\Mozilla*"; Type = "Wildcard"},
@@ -228,7 +234,7 @@ function Remove-Firefox-For-CurrentUser {
         )
     }
     
-    # Добавляем ярлыки если включено
+    # Add shortcuts if enabled
     if ($RemoveShortcuts) {
         $TargetPaths += @(
             @{Path = "$env:USERPROFILE\Desktop\*Firefox*"; Type = "Wildcard"},
@@ -237,7 +243,7 @@ function Remove-Firefox-For-CurrentUser {
         )
     }
     
-    # Удаление файлов и папок
+    # Remove files and folders
     $removedCount = 0
     foreach ($Target in $TargetPaths) {
         try {
@@ -247,7 +253,7 @@ function Remove-Firefox-For-CurrentUser {
                         Remove-Item $Target.Path -Recurse -Force -ErrorAction SilentlyContinue
                         $removedCount++
                         if ($Verbose) {
-                            Write-Output "  ✓ Удалена папка: $($Target.Path)"
+                            Write-Output "  [OK] Removed folder: $($Target.Path)"
                         }
                     }
                 }
@@ -257,23 +263,23 @@ function Remove-Firefox-For-CurrentUser {
                         Remove-Item $item.FullName -Recurse -Force -ErrorAction SilentlyContinue
                         $removedCount++
                         if ($Verbose) {
-                            Write-Output "  ✓ Удален: $($item.FullName)"
+                            Write-Output "  [OK] Removed: $($item.FullName)"
                         }
                     }
                 }
             }
         } catch {
             if ($Verbose) {
-                Write-Warning "  ✗ Ошибка удаления: $($Target.Path) - $($_.Exception.Message)"
+                Write-Warning "  [ERROR] Removal failed: $($Target.Path) - $($_.Exception.Message)"
             }
         }
     }
     
     if ($Verbose -and $removedCount -eq 0) {
-        Write-Output "  ℹ Не найдено данных Firefox для удаления"
+        Write-Output "  [INFO] No Firefox data found for removal"
     }
     
-    # Очистка реестра для текущего пользователя
+    # Registry cleanup for current user
     if ($CleanReg) {
         Clean-CurrentUserRegistry -Verbose $Verbose -RemoveProfiles $RemoveProfiles
     }
@@ -282,11 +288,11 @@ function Remove-Firefox-For-CurrentUser {
 function Remove-Firefox-For-AllUsers {
     param($CleanReg, $Verbose, $RemoveProfiles, $RemoveCache, $RemoveShortcuts)
     
-    # Получаем все профили через реестр
+    # Get all profiles via registry
     $allProfiles = Get-AllUserProfiles
     
     if ($Verbose) {
-        Write-Output "Найдено пользовательских профилей: $($allProfiles.Count)"
+        Write-Output "Found user profiles: $($allProfiles.Count)"
         Write-Output ""
     }
     
@@ -296,12 +302,12 @@ function Remove-Firefox-For-AllUsers {
         $userSID = $profile.SID
         
         if ($Verbose) {
-            Write-Output "=== Обработка пользователя: $userName ==="
-            Write-Output "Путь к профилю: $userPath"
+            Write-Output "=== Processing user: $userName ==="
+            Write-Output "Profile path: $userPath"
             Write-Output "SID: $userSID"
         }
         
-        # Базовые пути для удаления
+        # Basic paths for removal
         $TargetPaths = @()
         
         if ($RemoveProfiles) {
@@ -331,7 +337,7 @@ function Remove-Firefox-For-AllUsers {
             )
         }
         
-        # Удаление файлов и папок
+        # Remove files and folders
         $removedCount = 0
         foreach ($Target in $TargetPaths) {
             try {
@@ -341,7 +347,7 @@ function Remove-Firefox-For-AllUsers {
                             Remove-Item $Target.Path -Recurse -Force -ErrorAction SilentlyContinue
                             $removedCount++
                             if ($Verbose) {
-                                Write-Output "  ✓ Удалена папка: $($Target.Path)"
+                                Write-Output "  [OK] Removed folder: $($Target.Path)"
                             }
                         }
                     }
@@ -351,19 +357,19 @@ function Remove-Firefox-For-AllUsers {
                             Remove-Item $item.FullName -Recurse -Force -ErrorAction SilentlyContinue
                             $removedCount++
                             if ($Verbose) {
-                                Write-Output "  ✓ Удален: $($item.FullName)"
+                                Write-Output "  [OK] Removed: $($item.FullName)"
                             }
                         }
                     }
                 }
             } catch {
                 if ($Verbose) {
-                    Write-Warning "  ✗ Ошибка удаления: $($Target.Path)"
+                    Write-Warning "  [ERROR] Removal failed: $($Target.Path)"
                 }
             }
         }
         
-        # Очистка реестра
+        # Registry cleanup
         if ($CleanReg -and $userSID) {
             Clean-UserRegistry -UserSID $userSID -UserName $userName -UserPath $userPath -Verbose $Verbose -RemoveProfiles $RemoveProfiles
         }
@@ -379,16 +385,16 @@ function Clean-CurrentUserRegistry {
     
     try {
         if ($Verbose) {
-            Write-Output "  Очистка реестра текущего пользователя..."
+            Write-Output "  Cleaning current user registry..."
         }
         
-        # Основные разделы для удаления (всегда)
+        # Basic registry paths to remove (always)
         $RegPathsToRemove = @(
             "HKCU:\Software\Clients\StartMenuInternet\FIREFOX.EXE",
             "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Mozilla Firefox"
         )
         
-        # Расширенные разделы если удаляем профили
+        # Extended paths if removing profiles
         if ($RemoveProfiles) {
             $RegPathsToRemove += @(
                 "HKCU:\Software\Mozilla",
@@ -397,31 +403,31 @@ function Clean-CurrentUserRegistry {
                 "HKCU:\Software\Classes\FirefoxURL"
             )
         } else {
-            # Если не удаляем профили, оставляем настройки Mozilla
+            # If not removing profiles, keep Mozilla settings
             $RegPathsToRemove += @(
                 "HKCU:\Software\Mozilla\Firefox"
             )
         }
         
-        # Удаляем разделы реестра
+        # Remove registry paths
         $regRemovedCount = 0
         foreach ($RegPath in $RegPathsToRemove) {
             if (Test-Path $RegPath) {
                 Remove-Item $RegPath -Recurse -Force -ErrorAction SilentlyContinue
                 $regRemovedCount++
                 if ($Verbose) {
-                    Write-Output "  ✓ Удален реестр: $RegPath"
+                    Write-Output "  [OK] Removed registry: $RegPath"
                 }
             }
         }
         
         if ($Verbose -and $regRemovedCount -eq 0) {
-            Write-Output "  ℹ Не найдено записей реестра Firefox для удаления"
+            Write-Output "  [INFO] No Firefox registry entries found for removal"
         }
         
     } catch {
         if ($Verbose) {
-            Write-Warning "  ✗ Ошибка работы с реестром: $($_.Exception.Message)"
+            Write-Warning "  [ERROR] Registry operation failed: $($_.Exception.Message)"
         }
     }
 }
@@ -430,7 +436,7 @@ function Clean-UserRegistry {
     param($UserSID, $UserName, $UserPath, $Verbose, $RemoveProfiles)
     
     try {
-        # Загружаем куст реестра если не загружен
+        # Load registry hive if not loaded
         $HivePath = "HKU\$UserSID"
         $HiveFile = "$UserPath\NTUSER.DAT"
         
@@ -438,23 +444,23 @@ function Clean-UserRegistry {
             if (Test-Path $HiveFile) {
                 reg load "HKU\$UserSID" $HiveFile 2>&1 | Out-Null
                 if ($Verbose) {
-                    Write-Output "  ✓ Загружен реестр пользователя"
+                    Write-Output "  [OK] Loaded user registry"
                 }
             } else {
                 if ($Verbose) {
-                    Write-Output "  ℹ Файл реестра не найден: $HiveFile"
+                    Write-Output "  [INFO] Registry file not found: $HiveFile"
                 }
                 return
             }
         }
         
-        # Основные разделы для удаления (всегда)
+        # Basic registry paths to remove (always)
         $RegPathsToRemove = @(
             "Software\Clients\StartMenuInternet\FIREFOX.EXE",
             "Software\Microsoft\Windows\CurrentVersion\Uninstall\Mozilla Firefox"
         )
         
-        # Расширенные разделы если удаляем профили
+        # Extended paths if removing profiles
         if ($RemoveProfiles) {
             $RegPathsToRemove += @(
                 "Software\Mozilla",
@@ -463,13 +469,13 @@ function Clean-UserRegistry {
                 "Software\Classes\FirefoxURL"
             )
         } else {
-            # Если не удаляем профили, оставляем настройки Mozilla
+            # If not removing profiles, keep Mozilla settings
             $RegPathsToRemove += @(
                 "Software\Mozilla\Firefox"
             )
         }
         
-        # Удаляем разделы реестра
+        # Remove registry paths
         $regRemovedCount = 0
         foreach ($RegPath in $RegPathsToRemove) {
             $FullPath = "$HivePath\$RegPath"
@@ -477,83 +483,84 @@ function Clean-UserRegistry {
                 Remove-Item "Registry::$FullPath" -Recurse -Force -ErrorAction SilentlyContinue
                 $regRemovedCount++
                 if ($Verbose) {
-                    Write-Output "  ✓ Удален реестр: $RegPath"
+                    Write-Output "  [OK] Removed registry: $RegPath"
                 }
             }
         }
         
         if ($Verbose -and $regRemovedCount -eq 0) {
-            Write-Output "  ℹ Не найдено записей реестра Firefox для удаления"
+            Write-Output "  [INFO] No Firefox registry entries found for removal"
         }
         
-        # Выгружаем куст реестра
+        # Unload registry hive
         reg unload "HKU\$UserSID" 2>&1 | Out-Null
         if ($Verbose) {
-            Write-Output "  ✓ Выгружен реестр пользователя"
+            Write-Output "  [OK] Unloaded user registry"
         }
         
     } catch {
         if ($Verbose) {
-            Write-Warning "  ✗ Ошибка работы с реестром: $($_.Exception.Message)"
+            Write-Warning "  [ERROR] Registry operation failed: $($_.Exception.Message)"
         }
     }
 }
 
-# Основной код
+# Main code
 Write-Output "=== RemoveFirefoxFromUserProfile.ps1 ==="
-Write-Output "Скрипт удаления Mozilla Firefox из профилей пользователей"
+Write-Output "Script for removing Mozilla Firefox from user profiles"
+Write-Output "Author: AMV"
 Write-Output ""
 
-# Показываем краткую справку при запуске
-Write-Output "Используйте -Help для просмотра полной справки"
+# Show brief help on startup
+Write-Output "Use -Help to view full help"
 Write-Output ""
 
-Write-Output "НАСТРОЙКИ:"
-Write-Output "  Режим обработки: $UserScope"
-Write-Output "  Очистка реестра: $CleanRegistry"
-Write-Output "  Удаление профилей Firefox: $RemoveFirefoxProfiles"
-Write-Output "  Удаление кэша: $RemoveCache"
-Write-Output "  Удаление ярлыков: $RemoveShortcuts"
-Write-Output "  Подробный вывод: $VerboseOutput"
+Write-Output "SETTINGS:"
+Write-Output "  Processing mode: $UserScope"
+Write-Output "  Registry cleanup: $CleanRegistry"
+Write-Output "  Remove Firefox profiles: $RemoveFirefoxProfiles"
+Write-Output "  Remove cache: $RemoveCache"
+Write-Output "  Remove shortcuts: $RemoveShortcuts"
+Write-Output "  Verbose output: $VerboseOutput"
 Write-Output ""
 
-# Обрабатываем в зависимости от выбранного режима
+# Process based on selected mode
 switch ($UserScope) {
     "Current" {
-        Write-Output "РЕЖИМ: Обработка только текущего пользователя"
-        Write-Output "Текущий пользователь: $env:USERNAME"
-        Write-Output "Путь к профилю: $env:USERPROFILE"
+        Write-Output "MODE: Processing current user only"
+        Write-Output "Current user: $env:USERNAME"
+        Write-Output "Profile path: $env:USERPROFILE"
         Write-Output ""
         
         Remove-Firefox-For-CurrentUser -CleanReg $CleanRegistry -Verbose $VerboseOutput -RemoveProfiles $RemoveFirefoxProfiles -RemoveCache $RemoveCache -RemoveShortcuts $RemoveShortcuts
         $processedCount = 1
     }
     "All" {
-        Write-Output "РЕЖИМ: Обработка всех пользователей"
+        Write-Output "MODE: Processing all users"
         
-        # Проверяем права администратора для режима "All"
+        # Check administrator rights for "All" mode
         $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
         $isAdmin = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
         
         if (-not $isAdmin) {
-            Write-Warning "ВНИМАНИЕ: Для обработки всех пользователей требуются права администратора!"
-            Write-Output "Запустите PowerShell от имени администратора или используйте -UserScope Current"
+            Write-Warning "WARNING: Administrator rights required for processing all users!"
+            Write-Output "Run PowerShell as administrator or use -UserScope Current"
             exit 1
         }
         
         Write-Output ""
         
-        # Запрос подтверждения для режима "All"
+        # Confirmation prompt for "All" mode
         if ($VerboseOutput) {
-            $confirmation = Read-Host "Вы уверены, что хотите удалить Firefox для ВСЕХ пользователей? (y/N)"
+            $confirmation = Read-Host "Are you sure you want to remove Firefox for ALL users? (y/N)"
             if ($confirmation -ne 'y' -and $confirmation -ne 'Y') {
-                Write-Output "Операция отменена пользователем"
+                Write-Output "Operation cancelled by user"
                 exit 0
             }
         }
         
-        Write-Output "Начинаем очистку для всех пользователей..."
-        Write-Output "Определяем профили через реестр..."
+        Write-Output "Starting cleanup for all users..."
+        Write-Output "Detecting profiles via registry..."
         Write-Output ""
         
         Remove-Firefox-For-AllUsers -CleanReg $CleanRegistry -Verbose $VerboseOutput -RemoveProfiles $RemoveFirefoxProfiles -RemoveCache $RemoveCache -RemoveShortcuts $RemoveShortcuts
@@ -563,26 +570,26 @@ switch ($UserScope) {
 }
 
 Write-Output ""
-Write-Output "=== ОЧИСТКА ЗАВЕРШЕНА ==="
-Write-Output "Обработано профилей: $processedCount"
-Write-Output "Режим: $UserScope"
+Write-Output "=== CLEANUP COMPLETED ==="
+Write-Output "Processed profiles: $processedCount"
+Write-Output "Mode: $UserScope"
 
 if ($UserScope -eq "Current") {
-    Write-Output "Профиль: $env:USERPROFILE"
+    Write-Output "Profile: $env:USERPROFILE"
 }
 
 Write-Output ""
 
-# Показываем итоговые рекомендации
+# Show final recommendations
 if ($RemoveFirefoxProfiles) {
-    Write-Output "РЕКОМЕНДАЦИИ:"
-    Write-Output "  - Firefox полностью удален из профилей пользователей"
-    Write-Output "  - Пользователям потребуется переустановить Firefox при необходимости"
+    Write-Output "RECOMMENDATIONS:"
+    Write-Output "  - Firefox completely removed from user profiles"
+    Write-Output "  - Users will need to reinstall Firefox if needed"
 } else {
-    Write-Output "РЕКОМЕНДАЦИИ:"
-    Write-Output "  - Сохранены настройки Mozilla, удалены только данные Firefox"
-    Write-Output "  - При повторной установке Firefox настройки могут восстановиться"
+    Write-Output "RECOMMENDATIONS:"
+    Write-Output "  - Mozilla settings preserved, only Firefox data removed"
+    Write-Output "  - Settings may restore on Firefox reinstallation"
 }
 
 Write-Output ""
-Write-Output "Для просмотра справки выполните: .\RemoveFirefoxFromUserProfile.ps1 -Help"
+Write-Output "For help, run: .\RemoveFirefoxFromUserProfile.ps1 -Help"
